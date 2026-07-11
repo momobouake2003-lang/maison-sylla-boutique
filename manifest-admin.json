@@ -1,0 +1,19 @@
+{
+  "id": "/admin.html",
+  "name": "Maison Sylla — Espace Famille",
+  "short_name": "MS Admin",
+  "description": "Gestion du catalogue et des commandes Maison Sylla — accès famille.",
+  "start_url": "/admin.html",
+  "scope": "/admin.html",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#F7F3EA",
+  "theme_color": "#2F5233",
+  "lang": "fr",
+  "icons": [
+    { "src": "icons/admin-icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/admin-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/admin-icon-192-maskable.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "icons/admin-icon-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
