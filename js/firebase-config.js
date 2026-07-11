@@ -22,12 +22,12 @@
    ========================================================================== */
 
 const firebaseConfig = {
-  apiKey: "AIzaSyAKMcqyQFpm6V1Zn-Qx5VVXLc5-LCNeqE8",
-  authDomain: "service-sylla.firebaseapp.com",
-  projectId: "service-sylla",
-  storageBucket: "service-sylla.firebasestorage.app",
-  messagingSenderId: "316519921582",
-  appId: "1:316519921582:web:bc828bb2dfdd67488b3a3f",
+  apiKey: "À_REMPLACER",
+  authDomain: "À_REMPLACER.firebaseapp.com",
+  projectId: "À_REMPLACER",
+  storageBucket: "À_REMPLACER.appspot.com",
+  messagingSenderId: "À_REMPLACER",
+  appId: "À_REMPLACER",
 };
 
 let db = null;
