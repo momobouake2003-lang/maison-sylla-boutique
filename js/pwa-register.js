@@ -1,41 +1,41 @@
-// Maison Sylla — enregistrement du service worker + bouton d'installation PWA.
-// Ce script est chargé sur toutes les pages (boutique ET admin.html) juste
-// avant </body>. Il ne fait rien si le navigateur ne supporte pas les PWA.
+// Enregistre le service worker et gère le bouton "Installer l'appli".
+// À inclure sur toutes les pages (client ET admin), juste avant </body>.
 
-(function () {
-  // ---------- 1. Enregistrer le service worker ----------
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('sw.js').catch((err) => {
-        console.warn('Maison Sylla : échec d\'enregistrement du service worker.', err);
-      });
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch((err) => {
+      console.warn('Maison Sylla : service worker non enregistré.', err);
     });
-  }
-
-  // ---------- 2. Gérer le bouton "Installer l'appli" (s'il existe sur la page) ----------
-  let deferredPrompt = null;
-  const installBtn = document.getElementById('installAppBtn');
-
-  window.addEventListener('beforeinstallprompt', (event) => {
-    // Empêche la mini-infobar automatique de Chrome pour proposer notre propre bouton
-    event.preventDefault();
-    deferredPrompt = event;
-    if (installBtn) installBtn.hidden = false;
   });
+}
 
-  if (installBtn) {
-    installBtn.addEventListener('click', async () => {
-      if (!deferredPrompt) return;
-      installBtn.hidden = true;
-      deferredPrompt.prompt();
-      await deferredPrompt.userChoice;
-      deferredPrompt = null;
-    });
-  }
+// Capture l'évènement d'installation pour proposer un bouton "Installer"
+// personnalisé (au lieu de compter uniquement sur le menu du navigateur).
+let deferredInstallPrompt = null;
 
-  // Une fois l'appli installée, on cache définitivement le bouton
-  window.addEventListener('appinstalled', () => {
-    if (installBtn) installBtn.hidden = true;
-    deferredPrompt = null;
+window.addEventListener('beforeinstallprompt', (event) => {
+  event.preventDefault();
+  deferredInstallPrompt = event;
+  const btn = document.getElementById('installAppBtn');
+  if (btn) btn.hidden = false;
+});
+
+window.addEventListener('appinstalled', () => {
+  deferredInstallPrompt = null;
+  const btn = document.getElementById('installAppBtn');
+  if (btn) btn.hidden = true;
+});
+
+function initInstallButton() {
+  const btn = document.getElementById('installAppBtn');
+  if (!btn) return;
+  btn.addEventListener('click', async () => {
+    if (!deferredInstallPrompt) return;
+    deferredInstallPrompt.prompt();
+    await deferredInstallPrompt.userChoice;
+    deferredInstallPrompt = null;
+    btn.hidden = true;
   });
-})();
+}
+
+document.addEventListener('DOMContentLoaded', initInstallButton);
