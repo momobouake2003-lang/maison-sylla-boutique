@@ -1,10 +1,10 @@
 {
-  "id": "./admin.html",
+  "id": "/admin/",
   "name": "Maison Sylla — Espace Famille",
   "short_name": "MS Admin",
   "description": "Gestion du catalogue et des commandes Maison Sylla — accès famille.",
-  "start_url": "./admin.html",
-  "scope": "./",
+  "start_url": "/admin/",
+  "scope": "/admin/",
   "display": "standalone",
   "orientation": "portrait-primary",
   "background_color": "#F7F3EA",
