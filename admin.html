@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Espace famille — Maison Sylla</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="stylesheet" href="css/style.css">
+<style>
+  .admin-wrap{ max-width:880px; margin:0 auto; padding:48px 28px 100px; }
+  .admin-card{ background:var(--white); border:1px solid var(--line); border-radius:var(--radius); padding:32px; margin-bottom:28px; }
+  .admin-card h2{ margin-bottom:6px; }
+  .admin-note{ color:var(--clay); font-size:.9rem; margin-bottom:22px; }
+  .admin-form{ display:flex; flex-direction:column; gap:14px; }
+  .admin-form label{ font-size:.82rem; font-weight:500; color:var(--ink-2); display:flex; flex-direction:column; gap:6px; }
+  .admin-form input, .admin-form select, .admin-form textarea{
+    padding:11px 12px; border:1px solid var(--line); border-radius:var(--radius); background:var(--ivory);
+  }
+  .admin-row2{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .admin-row3{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; }
+  .admin-check{ flex-direction:row !important; align-items:center; gap:8px !important; }
+  .admin-error{ background:#fdecec; border:1px solid #e2a2a2; color:#8a2b2b; padding:10px 14px; border-radius:var(--radius); font-size:.86rem; display:none; }
+  .admin-error.show{ display:block; }
+  .admin-status{ font-family:var(--font-mono); font-size:.76rem; color:var(--clay); }
+  .icon-preview{ width:44px; height:44px; padding:8px; background:var(--ivory-2); border-radius:var(--radius); color:var(--ink); }
+  .icon-preview svg, .icon-preview img{ width:100%; height:100%; object-fit:contain; }
+
+  .plist{ display:flex; flex-direction:column; }
+  .prow{
+    display:grid; grid-template-columns:52px 1fr auto auto auto auto; gap:14px; align-items:center;
+    padding:14px 0; border-bottom:1px solid var(--line);
+  }
+  .prow .thumb{ width:52px; height:52px; background:var(--ivory-2); border-radius:var(--radius); display:flex; align-items:center; justify-content:center; color:var(--ink); }
+  .prow .thumb svg, .prow .thumb img{ width:60%; height:60%; }
+  .prow .pname{ font-family:var(--font-display); font-weight:600; color:var(--ink); }
+  .prow .pcat{ font-family:var(--font-mono); font-size:.68rem; color:var(--clay); text-transform:uppercase; }
+  .prow .pstock{ font-family:var(--font-mono); font-size:.72rem; }
+  .prow .pstock.in{ color:var(--green); }
+  .prow .pstock.out{ color:var(--clay); }
+  .prow .pprice{ font-family:var(--font-mono); }
+  .prow-actions{ display:flex; gap:10px; }
+  .link-btn{ background:none; border:none; font-size:.8rem; text-decoration:underline; color:var(--ink-2); padding:0; }
+  .link-btn.danger{ color:#a23a3a; }
+
+  #authGate{ max-width:420px; margin:60px auto; }
+  #dashboard{ display:none; }
+  .top-bar{ display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; flex-wrap:wrap; gap:10px; }
+  .badge-src{ font-family:var(--font-mono); font-size:.7rem; padding:4px 10px; border-radius:20px; border:1px solid var(--line); color:var(--clay); }
+  .badge-src.live{ color:var(--green); border-color:var(--green); }
+</style>
+</head>
+<body>
+
+<header class="site-header" id="site-header"></header>
+
+<main>
+  <div class="admin-wrap">
+
+    <!-- ================= LOGIN ================= -->
+    <section id="authGate" class="admin-card">
+      <p class="eyebrow">Accès réservé</p>
+      <h2>Espace famille</h2>
+      <p class="admin-note">Connectez-vous avec le compte que la famille vous a créé pour ajouter ou modifier les produits du site.</p>
+      <div class="admin-error" id="loginError"></div>
+      <form class="admin-form" id="loginForm">
+        <label>E-mail
+          <input type="email" name="email" required autocomplete="username">
+        </label>
+        <label>Mot de passe
+          <input type="password" name="password" required autocomplete="current-password">
+        </label>
+        <button type="submit" class="btn btn-ink btn-block">Se connecter</button>
+      </form>
+      <p class="admin-note" style="margin-top:18px; margin-bottom:0;" id="firebaseHint"></p>
+    </section>
+
+    <!-- ================= DASHBOARD ================= -->
+    <section id="dashboard">
+      <div class="top-bar">
+        <div>
+          <p class="eyebrow">Connecté en tant que</p>
+          <h2 style="margin-bottom:0;" id="whoAmI">—</h2>
+        </div>
+        <div style="display:flex; align-items:center; gap:12px;">
+          <span class="badge-src" id="sourceBadge">Catalogue local</span>
+          <button class="btn btn-outline btn-sm" id="logoutBtn">Se déconnecter</button>
+        </div>
+      </div>
+
+      <div class="admin-card" id="importCard" style="display:none;">
+        <h3>Démarrage rapide</h3>
+        <p class="admin-note">Aucun produit n'a encore été enregistré dans Firestore. Vous pouvez importer le catalogue de démonstration (18 produits) comme point de départ, puis le modifier librement.</p>
+        <button class="btn btn-gold" id="importBtn">Importer le catalogue de démonstration</button>
+      </div>
+
+      <div class="admin-card">
+        <h3 id="formTitle">Ajouter un produit</h3>
+        <p class="admin-note">Visible immédiatement par tous les visiteurs du site, sans republier.</p>
+        <div class="admin-error" id="formError"></div>
+        <form class="admin-form" id="productForm">
+          <input type="hidden" name="docId" value="">
+          <label>Nom du produit
+            <input type="text" name="name" required placeholder="Ex : Bouilloire électrique 1.7L">
+          </label>
+          <div class="admin-row2">
+            <label>Catégorie
+              <select name="cat" id="catSelect" required>
+                <option value="electronique">Électronique</option>
+                <option value="vaisselle">Vaisselle</option>
+                <option value="gourdes">Gourdes &amp; Drinkware</option>
+              </select>
+            </label>
+            <label>Prix (FCFA)
+              <input type="number" name="price" min="0" step="500" required placeholder="Ex : 12000">
+            </label>
+          </div>
+          <div class="admin-row3" style="align-items:end;">
+            <label>Icône
+              <select name="iconKey" id="iconSelect"></select>
+            </label>
+            <label style="grid-column:span 2;">URL d'image (optionnel, remplace l'icône)
+              <input type="text" name="imageUrl" id="imageUrlInput" placeholder="https://...">
+            </label>
+          </div>
+          <label>Ou importer une photo depuis votre appareil
+            <input type="file" name="imageFile" id="imageFileInput" accept="image/*">
+          </label>
+          <p class="admin-note" id="imageFileNote" style="margin-top:-6px;"></p>
+          <div><span class="icon-preview" id="iconPreview"></span></div>
+          <label>Description
+            <textarea name="desc" rows="3" placeholder="Décrivez le produit en une ou deux phrases."></textarea>
+          </label>
+          <label class="admin-check"><input type="checkbox" name="stock" checked> En stock</label>
+          <div style="display:flex; gap:10px;">
+            <button type="submit" class="btn btn-ink" id="submitProductBtn">Ajouter le produit</button>
+            <button type="button" class="btn btn-outline" id="cancelEditBtn" style="display:none;">Annuler la modification</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="admin-card">
+        <h3>Produits actuels</h3>
+        <p class="admin-status" id="countStatus">Chargement…</p>
+        <div class="plist" id="plist"></div>
+      </div>
+    </section>
+
+  </div>
+</main>
+
+<footer class="site-footer" id="site-footer"></footer>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="js/firebase-config.js"></script>
+<script src="js/products.js"></script>
+<script src="js/cart.js"></script>
+<script>
+  mountHeaderFooter(null);
+
+  const authGate = document.getElementById('authGate');
+  const dashboard = document.getElementById('dashboard');
+  const firebaseHint = document.getElementById('firebaseHint');
+  const loginError = document.getElementById('loginError');
+
+  if(!auth || !db){
+    firebaseHint.innerHTML = "Firebase n'est pas encore configuré pour ce site. Suivez les étapes du fichier <code>README.md</code> (section « Configurer Firebase ») puis rechargez cette page.";
+  }
+
+  document.getElementById('loginForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    loginError.classList.remove('show');
+    if(!auth){
+      loginError.textContent = "Firebase n'est pas configuré — voir js/firebase-config.js et le README.";
+      loginError.classList.add('show');
+      return;
+    }
+    const data = new FormData(e.target);
+    try{
+      await auth.signInWithEmailAndPassword(data.get('email'), data.get('password'));
+    }catch(err){
+      loginError.textContent = "Connexion impossible : e-mail ou mot de passe incorrect.";
+      loginError.classList.add('show');
+    }
+  });
+
+  document.getElementById('logoutBtn').addEventListener('click', () => auth && auth.signOut());
+
+  /* ---------- Formulaire produit : icônes dynamiques selon la catégorie ---------- */
+  const catSelect = document.getElementById('catSelect');
+  const iconSelect = document.getElementById('iconSelect');
+  const iconPreview = document.getElementById('iconPreview');
+  const imageUrlInput = document.getElementById('imageUrlInput');
+  const imageFileInput = document.getElementById('imageFileInput');
+  const imageFileNote = document.getElementById('imageFileNote');
+
+  /* Compresse une image choisie sur l'appareil et la transforme en base64,
+     afin qu'elle puisse être stockée directement dans le document Firestore
+     (pas besoin de Firebase Storage, qui n'est pas inclus dans le plan gratuit). */
+  function compressImageFile(file, maxDim, quality){
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onerror = () => reject(new Error('Lecture du fichier impossible'));
+      reader.onload = () => {
+        const img = new Image();
+        img.onerror = () => reject(new Error('Image invalide'));
+        img.onload = () => {
+          let { width, height } = img;
+          if(width > height && width > maxDim){ height = Math.round(height * (maxDim / width)); width = maxDim; }
+          else if(height > maxDim){ width = Math.round(width * (maxDim / height)); height = maxDim; }
+          const canvas = document.createElement('canvas');
+          canvas.width = width; canvas.height = height;
+          canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL('image/jpeg', quality));
+        };
+        img.src = reader.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  imageFileInput.addEventListener('change', async () => {
+    const file = imageFileInput.files[0];
+    if(!file) return;
+    imageFileNote.textContent = 'Traitement de l\'image…';
+    try{
+      // Première passe : taille et qualité raisonnables
+      let dataUrl = await compressImageFile(file, 900, 0.72);
+      // Si le résultat dépasse ~700 Ko (limite Firestore = 1 Mo par produit), on compresse davantage
+      if(dataUrl.length > 700000){
+        dataUrl = await compressImageFile(file, 700, 0.55);
+      }
+      if(dataUrl.length > 700000){
+        dataUrl = await compressImageFile(file, 500, 0.5);
+      }
+      if(dataUrl.length > 900000){
+        imageFileNote.textContent = "Cette image est trop volumineuse même après compression. Essayez une photo plus simple ou moins détaillée.";
+        imageFileInput.value = '';
+        return;
+      }
+      imageUrlInput.value = dataUrl;
+      const approxKo = Math.round(dataUrl.length / 1024);
+      imageFileNote.textContent = `Photo prête (≈ ${approxKo} Ko). Elle remplace le champ URL ci-dessus.`;
+      updateIconPreview();
+    }catch(err){
+      imageFileNote.textContent = "Impossible de lire cette image, réessayez avec un autre fichier.";
+    }
+  });
+
+  function refreshIconOptions(){
+    const cat = catSelect.value;
+    const choices = ICON_CHOICES[cat] || Object.keys(ICONS);
+    iconSelect.innerHTML = choices.map(k => `<option value="${k}">${k}</option>`).join('');
+    updateIconPreview();
+  }
+  function updateIconPreview(){
+    const url = imageUrlInput.value.trim();
+    if(url){
+      iconPreview.innerHTML = `<img src="${escapeHTML(url)}" alt="">`;
+    } else {
+      iconPreview.innerHTML = ICONS[iconSelect.value] || '';
+    }
+  }
+  catSelect.addEventListener('change', refreshIconOptions);
+  iconSelect.addEventListener('change', updateIconPreview);
+  imageUrlInput.addEventListener('input', updateIconPreview);
+  refreshIconOptions();
+
+  /* ---------- Ajout / édition de produit ---------- */
+  const productForm = document.getElementById('productForm');
+  const formTitle = document.getElementById('formTitle');
+  const submitProductBtn = document.getElementById('submitProductBtn');
+  const cancelEditBtn = document.getElementById('cancelEditBtn');
+  const formError = document.getElementById('formError');
+
+  function resetForm(){
+    productForm.reset();
+    productForm.docId.value = '';
+    imageFileInput.value = '';
+    imageFileNote.textContent = '';
+    formTitle.textContent = 'Ajouter un produit';
+    submitProductBtn.textContent = 'Ajouter le produit';
+    cancelEditBtn.style.display = 'none';
+    refreshIconOptions();
+  }
+  cancelEditBtn.addEventListener('click', resetForm);
+
+  function startEdit(p){
+    productForm.docId.value = p.id;
+    productForm.name.value = p.name;
+    catSelect.value = p.cat;
+    productForm.price.value = p.price;
+    productForm.stock.checked = !!p.stock;
+    productForm.desc.value = p.desc || '';
+    imageUrlInput.value = p.imageUrl || '';
+    imageFileInput.value = '';
+    imageFileNote.textContent = '';
+    refreshIconOptions();
+    if(p.iconKey) iconSelect.value = p.iconKey;
+    updateIconPreview();
+    formTitle.textContent = `Modifier « ${p.name} »`;
+    submitProductBtn.textContent = 'Mettre à jour';
+    cancelEditBtn.style.display = 'inline-flex';
+    window.scrollTo({ top: productForm.getBoundingClientRect().top + window.scrollY - 100, behavior: 'smooth' });
+  }
+
+  productForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    formError.classList.remove('show');
+    if(!db){ formError.textContent = "Firestore n'est pas configuré."; formError.classList.add('show'); return; }
+
+    const data = new FormData(productForm);
+    const docId = data.get('docId');
+    const payload = {
+      name: data.get('name').trim(),
+      cat: data.get('cat'),
+      price: Number(data.get('price')) || 0,
+      stock: productForm.stock.checked,
+      desc: data.get('desc').trim(),
+      iconKey: data.get('imageUrl').trim() ? '' : data.get('iconKey'),
+      imageUrl: data.get('imageUrl').trim(),
+    };
+
+    try{
+      if(docId){
+        await db.collection('products').doc(docId).update(payload);
+        showToast('Produit mis à jour');
+      } else {
+        payload.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+        await db.collection('products').add(payload);
+        showToast('Produit ajouté');
+      }
+      resetForm();
+    }catch(err){
+      formError.textContent = "Erreur lors de l'enregistrement : " + err.message;
+      formError.classList.add('show');
+    }
+  });
+
+  /* ---------- Import du catalogue de démonstration ---------- */
+  document.getElementById('importBtn').addEventListener('click', async () => {
+    if(!db) return;
+    try{
+      const batch = db.batch();
+      SEED_PRODUCTS.forEach(p => {
+        const ref = db.collection('products').doc();
+        const { id, ...rest } = p;
+        batch.set(ref, { ...rest, imageUrl: '', createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+      });
+      await batch.commit();
+      showToast('Catalogue de démonstration importé');
+    }catch(err){
+      alert("Erreur lors de l'import : " + err.message);
+    }
+  });
+
+  /* ---------- Liste en direct des produits ---------- */
+  function renderAdminList(items){
+    const listEl = document.getElementById('plist');
+    document.getElementById('countStatus').textContent = `${items.length} produit${items.length>1?'s':''} enregistré${items.length>1?'s':''}`;
+    document.getElementById('importCard').style.display = items.length === 0 ? 'block' : 'none';
+
+    if(items.length === 0){
+      listEl.innerHTML = `<p class="empty-note">Aucun produit pour le moment.</p>`;
+      return;
+    }
+    listEl.innerHTML = items.map(p => `
+      <div class="prow">
+        <div class="thumb">${resolveIcon(p)}</div>
+        <div>
+          <div class="pcat">${CATEGORIES[p.cat] ? CATEGORIES[p.cat].label : p.cat}</div>
+          <div class="pname">${escapeHTML(p.name)}</div>
+        </div>
+        <div class="pstock ${p.stock ? 'in' : 'out'}">${p.stock ? '● En stock' : '● Rupture'}</div>
+        <div class="pprice">${formatFCFA(p.price)}</div>
+        <div class="prow-actions">
+          <button class="link-btn" data-edit="${p.id}">Modifier</button>
+          <button class="link-btn danger" data-del="${p.id}">Supprimer</button>
+        </div>
+      </div>`).join('');
+
+    listEl.querySelectorAll('[data-edit]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const p = items.find(x => x.id === btn.getAttribute('data-edit'));
+        if(p) startEdit(p);
+      });
+    });
+    listEl.querySelectorAll('[data-del]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const p = items.find(x => x.id === btn.getAttribute('data-del'));
+        if(!p) return;
+        if(!confirm(`Supprimer « ${p.name} » ? Cette action est définitive.`)) return;
+        await db.collection('products').doc(p.id).delete();
+        showToast('Produit supprimé');
+      });
+    });
+  }
+
+  let unsubscribeProducts = null;
+  function startLiveList(){
+    if(!db) return;
+    document.getElementById('sourceBadge').textContent = 'Catalogue en direct (Firestore)';
+    document.getElementById('sourceBadge').classList.add('live');
+    unsubscribeProducts = db.collection('products').orderBy('createdAt', 'asc')
+      .onSnapshot(snap => {
+        const items = snap.docs.map(doc => {
+          const data = doc.data();
+          return { id: doc.id, ...data };
+        });
+        renderAdminList(items);
+      }, err => {
+        document.getElementById('countStatus').textContent = 'Erreur de chargement : ' + err.message;
+      });
+  }
+  function stopLiveList(){
+    if(unsubscribeProducts){ unsubscribeProducts(); unsubscribeProducts = null; }
+  }
+
+  /* ---------- État de connexion ---------- */
+  if(auth){
+    auth.onAuthStateChanged(user => {
+      if(user){
+        authGate.style.display = 'none';
+        dashboard.style.display = 'block';
+        document.getElementById('whoAmI').textContent = user.email;
+        startLiveList();
+      } else {
+        authGate.style.display = 'block';
+        dashboard.style.display = 'none';
+        stopLiveList();
+      }
+    });
+  }
+</script>
+</body>
+</html>

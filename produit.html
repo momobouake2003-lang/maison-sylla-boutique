@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title id="pageTitle">Produit — Maison Sylla</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="site-header" id="site-header"></header>
+
+<main>
+  <div class="wrap" style="padding-top:20px;">
+    <p class="breadcrumb" id="breadcrumb" style="color:var(--clay);"><a href="index.html" style="color:var(--clay);">Accueil</a> / <span id="crumbCat"></span> / <span id="crumbName"></span></p>
+  </div>
+
+  <section class="product-detail">
+    <div class="wrap pd-grid" id="pdRoot">
+      <!-- rempli en JS -->
+    </div>
+  </section>
+
+  <section class="related">
+    <div class="wrap">
+      <div class="section-head">
+        <div><p class="eyebrow">Vous aimerez aussi</p><h2>Autres produits de la même catégorie</h2></div>
+      </div>
+      <div class="product-grid" id="relatedGrid"></div>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer" id="site-footer"></footer>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="js/firebase-config.js"></script>
+<script src="js/products.js"></script>
+<script src="js/cart.js"></script>
+<script>
+  mountHeaderFooter(null);
+
+  (async function(){
+  document.getElementById('pdRoot').innerHTML = '<p class="empty-note">Chargement du produit…</p>';
+  await loadProducts();
+
+  const params = new URLSearchParams(window.location.search);
+  const product = getProduct(params.get('id'));
+
+  if(!product){
+    document.getElementById('pdRoot').innerHTML = `
+      <div style="grid-column:1/-1;" class="text-center">
+        <h2>Produit introuvable</h2>
+        <p class="empty-note">Ce produit n'existe plus ou le lien est incorrect.</p>
+        <a href="index.html" class="btn btn-ink">Retour à l'accueil</a>
+      </div>`;
+  } else {
+    document.getElementById('pageTitle').textContent = `${product.name} — Maison Sylla`;
+    document.getElementById('crumbCat').innerHTML = `<a href="${product.cat}.html" style="color:var(--clay);">${CATEGORIES[product.cat].label}</a>`;
+    document.getElementById('crumbName').textContent = product.name;
+
+    document.getElementById('pdRoot').innerHTML = `
+      <div class="pd-media">${product.icon}</div>
+      <div class="pd-info">
+        <span class="product-cat">${CATEGORIES[product.cat].label}</span>
+        <h1>${product.name}</h1>
+        <div class="pd-price">${formatFCFA(product.price)}</div>
+        <p class="pd-desc">${product.desc}</p>
+
+        <div class="pd-qty">
+          <div class="qty-control">
+            <button type="button" id="qtyMinus">−</button>
+            <input type="number" id="qtyInput" value="1" min="1">
+            <button type="button" id="qtyPlus">+</button>
+          </div>
+          <span style="font-family:var(--font-mono); font-size:.85rem; color:${product.stock ? 'var(--green)' : 'var(--clay)'};">
+            ${product.stock ? '● En stock' : '● Rupture de stock'}
+          </span>
+        </div>
+
+        <div class="pd-actions">
+          <button class="btn btn-ink" id="addBtn" ${product.stock ? '' : 'disabled'}>Ajouter au panier</button>
+          <a class="btn btn-whatsapp" id="waBtn" target="_blank" rel="noopener">${UI_ICONS.whatsapp} Commander via WhatsApp</a>
+        </div>
+
+        <div class="pd-meta">
+          <div><b>Livraison :</b> Bouaké et environs, retrait en boutique possible.</div>
+          <div><b>Paiement :</b> Orange Money, MTN Money, Wave, carte bancaire.</div>
+          <div><b>Référence :</b> ${product.id}</div>
+        </div>
+      </div>`;
+
+    const qtyInput = document.getElementById('qtyInput');
+    document.getElementById('qtyMinus').addEventListener('click', () => {
+      qtyInput.value = Math.max(1, parseInt(qtyInput.value || '1') - 1);
+    });
+    document.getElementById('qtyPlus').addEventListener('click', () => {
+      qtyInput.value = parseInt(qtyInput.value || '1') + 1;
+    });
+    document.getElementById('addBtn').addEventListener('click', () => {
+      addToCart(product.id, Math.max(1, parseInt(qtyInput.value || '1')));
+      showToast('Ajouté au panier');
+    });
+    document.getElementById('waBtn').href = whatsappLink(whatsappProductMessage(product));
+
+    // Related products
+    const related = PRODUCTS.filter(p => p.cat === product.cat && p.id !== product.id).slice(0, 3);
+    document.getElementById('relatedGrid').innerHTML = related.map(p => `
+      <article class="product-card">
+        <a href="produit.html?id=${p.id}" class="product-media">
+          ${p.stock ? `<span class="stock-tag">En stock</span>` : `<span class="stock-tag out">Rupture</span>`}
+          ${p.icon}
+        </a>
+        <div class="product-body">
+          <span class="product-cat">${CATEGORIES[p.cat].label}</span>
+          <a href="produit.html?id=${p.id}" class="product-name">${p.name}</a>
+          <span class="product-price">${formatFCFA(p.price)}</span>
+          <div class="product-actions">
+            <button class="btn btn-ink btn-sm btn-block" data-add="${p.id}" ${p.stock ? '' : 'disabled'}>${p.stock ? 'Ajouter au panier' : 'Indisponible'}</button>
+          </div>
+        </div>
+      </article>`).join('');
+    document.querySelectorAll('[data-add]').forEach(btn => {
+      btn.addEventListener('click', () => { addToCart(btn.getAttribute('data-add'), 1); showToast('Ajouté au panier'); });
+    });
+  }
+  })();
+</script>
+</body>
+</html>
