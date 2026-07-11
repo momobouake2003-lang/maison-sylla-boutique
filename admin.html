@@ -21,6 +21,7 @@
   .admin-check{ flex-direction:row !important; align-items:center; gap:8px !important; }
   .admin-error{ background:#fdecec; border:1px solid #e2a2a2; color:#8a2b2b; padding:10px 14px; border-radius:var(--radius); font-size:.86rem; display:none; }
   .admin-error.show{ display:block; }
+  .admin-error.success{ background:#eaf6ec; border-color:#a8d5b0; color:#276a37; }
   .admin-status{ font-family:var(--font-mono); font-size:.76rem; color:var(--clay); }
   .icon-preview{ width:44px; height:44px; padding:8px; background:var(--ivory-2); border-radius:var(--radius); color:var(--ink); }
   .icon-preview svg, .icon-preview img{ width:100%; height:100%; object-fit:contain; }
@@ -39,8 +40,19 @@
   .prow .pstock.out{ color:var(--clay); }
   .prow .pprice{ font-family:var(--font-mono); }
   .prow-actions{ display:flex; gap:10px; }
-  .link-btn{ background:none; border:none; font-size:.8rem; text-decoration:underline; color:var(--ink-2); padding:0; }
+  .link-btn{ background:none; border:none; font-size:.8rem; text-decoration:underline; color:var(--ink-2); padding:0; cursor:pointer; }
   .link-btn.danger{ color:#a23a3a; }
+
+  .olist{ display:flex; flex-direction:column; gap:0; }
+  .orow{ padding:16px 0; border-bottom:1px solid var(--line); }
+  .orow:last-child{ border-bottom:none; }
+  .orow-head{ display:flex; justify-content:space-between; align-items:baseline; flex-wrap:wrap; gap:8px; margin-bottom:8px; }
+  .orow-name{ font-family:var(--font-display); font-weight:600; color:var(--ink); }
+  .orow-date{ font-family:var(--font-mono); font-size:.72rem; color:var(--clay); }
+  .orow-meta{ font-size:.85rem; color:var(--ink-2); margin-bottom:8px; }
+  .orow-items{ font-size:.85rem; color:var(--clay); line-height:1.6; }
+  .orow-total{ font-family:var(--font-mono); font-weight:600; color:var(--ink); margin-top:6px; }
+  .orow-pay{ display:inline-block; font-family:var(--font-mono); font-size:.68rem; text-transform:uppercase; background:var(--ivory-2); color:var(--ink-2); padding:3px 8px; border-radius:20px; margin-top:6px; }
 
   #authGate{ max-width:420px; margin:60px auto; }
   #dashboard{ display:none; }
@@ -71,6 +83,8 @@
         </label>
         <button type="submit" class="btn btn-ink btn-block">Se connecter</button>
       </form>
+      <button type="button" class="link-btn" id="forgotPasswordBtn" style="margin-top:14px;">Mot de passe oublié ?</button>
+      <div class="admin-error" id="resetMsg" style="margin-top:10px;"></div>
       <p class="admin-note" style="margin-top:18px; margin-bottom:0;" id="firebaseHint"></p>
     </section>
 
@@ -83,6 +97,7 @@
         </div>
         <div style="display:flex; align-items:center; gap:12px;">
           <span class="badge-src" id="sourceBadge">Catalogue local</span>
+          <button class="btn btn-outline btn-sm" id="exportBtn">Exporter (sauvegarde)</button>
           <button class="btn btn-outline btn-sm" id="logoutBtn">Se déconnecter</button>
         </div>
       </div>
@@ -143,6 +158,13 @@
         <p class="admin-status" id="countStatus">Chargement…</p>
         <div class="plist" id="plist"></div>
       </div>
+
+      <div class="admin-card">
+        <h3>Historique des commandes</h3>
+        <p class="admin-note">Commandes envoyées via WhatsApp depuis le panier du site, enregistrées ici automatiquement.</p>
+        <p class="admin-status" id="ordersStatus">Chargement…</p>
+        <div class="olist" id="olist"></div>
+      </div>
     </section>
 
   </div>
@@ -186,6 +208,31 @@
   });
 
   document.getElementById('logoutBtn').addEventListener('click', () => auth && auth.signOut());
+
+  /* ---------- Mot de passe oublié ---------- */
+  const resetMsg = document.getElementById('resetMsg');
+  document.getElementById('forgotPasswordBtn').addEventListener('click', async () => {
+    resetMsg.classList.remove('show', 'success');
+    const email = (document.querySelector('#loginForm [name=email]').value || '').trim();
+    if(!email){
+      resetMsg.textContent = "Entrez d'abord votre e-mail dans le champ ci-dessus, puis cliquez à nouveau.";
+      resetMsg.classList.add('show');
+      return;
+    }
+    if(!auth){
+      resetMsg.textContent = "Firebase n'est pas configuré — voir js/firebase-config.js.";
+      resetMsg.classList.add('show');
+      return;
+    }
+    try{
+      await auth.sendPasswordResetEmail(email);
+      resetMsg.textContent = `Un e-mail de réinitialisation a été envoyé à ${email}. Vérifiez aussi les spams.`;
+      resetMsg.classList.add('show', 'success');
+    }catch(err){
+      resetMsg.textContent = "Impossible d'envoyer l'e-mail. Vérifiez que l'adresse est correcte et correspond à un compte existant.";
+      resetMsg.classList.add('show');
+    }
+  });
 
   /* ---------- Formulaire produit : icônes dynamiques selon la catégorie ---------- */
   const catSelect = document.getElementById('catSelect');
@@ -417,6 +464,69 @@
     if(unsubscribeProducts){ unsubscribeProducts(); unsubscribeProducts = null; }
   }
 
+  /* ---------- Sauvegarde (export JSON des produits) ---------- */
+  document.getElementById('exportBtn').addEventListener('click', async () => {
+    if(!db){ alert("Firestore n'est pas configuré."); return; }
+    try{
+      const snap = await db.collection('products').orderBy('createdAt', 'asc').get();
+      const items = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const blob = new Blob([JSON.stringify(items, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const stamp = new Date().toISOString().slice(0,10);
+      a.href = url;
+      a.download = `maison-sylla-produits-${stamp}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      showToast(`${items.length} produit(s) exporté(s)`);
+    }catch(err){
+      alert("Erreur lors de l'export : " + err.message);
+    }
+  });
+
+  /* ---------- Historique des commandes ---------- */
+  function renderOrdersList(orders){
+    const listEl = document.getElementById('olist');
+    document.getElementById('ordersStatus').textContent = `${orders.length} commande${orders.length>1?'s':''} reçue${orders.length>1?'s':''}`;
+
+    if(orders.length === 0){
+      listEl.innerHTML = `<p class="empty-note">Aucune commande enregistrée pour le moment.</p>`;
+      return;
+    }
+    listEl.innerHTML = orders.map(o => {
+      const date = o.createdAt && o.createdAt.toDate ? o.createdAt.toDate().toLocaleString('fr-FR', { dateStyle:'medium', timeStyle:'short' }) : '—';
+      const items = (o.items || []).map(it => `${escapeHTML(it.name)} ×${it.qty} (${formatFCFA(it.price * it.qty)})`).join('<br>');
+      return `
+      <div class="orow">
+        <div class="orow-head">
+          <span class="orow-name">${escapeHTML(o.customerName || 'Client')} — ${escapeHTML(o.customerPhone || '')}</span>
+          <span class="orow-date">${date}</span>
+        </div>
+        <div class="orow-meta">${escapeHTML(o.quartier ? o.quartier + ', ' : '')}${escapeHTML(o.ville || '')}${o.adresse ? ' — ' + escapeHTML(o.adresse) : ''}</div>
+        <div class="orow-items">${items || 'Détail non disponible'}</div>
+        <div class="orow-total">Total : ${formatFCFA(o.total || 0)}</div>
+        <span class="orow-pay">${escapeHTML(o.paymentMethod || 'Non précisé')}</span>
+      </div>`;
+    }).join('');
+  }
+
+  let unsubscribeOrders = null;
+  function startOrdersList(){
+    if(!db) return;
+    unsubscribeOrders = db.collection('orders').orderBy('createdAt', 'desc').limit(100)
+      .onSnapshot(snap => {
+        const orders = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        renderOrdersList(orders);
+      }, err => {
+        document.getElementById('ordersStatus').textContent = 'Erreur de chargement : ' + err.message;
+      });
+  }
+  function stopOrdersList(){
+    if(unsubscribeOrders){ unsubscribeOrders(); unsubscribeOrders = null; }
+  }
+
   /* ---------- État de connexion ---------- */
   if(auth){
     auth.onAuthStateChanged(user => {
@@ -425,10 +535,12 @@
         dashboard.style.display = 'block';
         document.getElementById('whoAmI').textContent = user.email;
         startLiveList();
+        startOrdersList();
       } else {
         authGate.style.display = 'block';
         dashboard.style.display = 'none';
         stopLiveList();
+        stopOrdersList();
       }
     });
   }

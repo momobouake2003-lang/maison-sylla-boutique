@@ -49,12 +49,22 @@ Firebase gratuit (aucune carte bancaire requise pour ce niveau d'usage) :
          allow read: if true;
          allow write: if request.auth != null;
        }
+       match /orders/{orderId} {
+         allow create: if true;
+         allow read, update, delete: if request.auth != null;
+       }
      }
    }
    ```
-   Cliquez sur « Publier ». Cela veut dire : tout le monde peut *voir* les
-   produits, mais seule une personne *connectée* (un membre de la famille)
-   peut en ajouter, modifier ou supprimer.
+   Cliquez sur « Publier ». Cela veut dire :
+   - **Produits** : tout le monde peut *voir* le catalogue, mais seule une
+     personne *connectée* (un membre de la famille) peut en ajouter,
+     modifier ou supprimer.
+   - **Commandes** : n'importe quel visiteur peut *créer* une commande en
+     validant son panier (pas besoin de compte pour commander), mais seule
+     une personne connectée peut *consulter* l'historique des commandes
+     dans `admin.html` — un client ne peut donc jamais voir les commandes
+     des autres.
 
 8. **Déployez le site** (voir plus bas) puis ouvrez `admin.html`, connectez-vous avec un des comptes créés à l'étape 4, et cliquez sur « Importer le catalogue de démonstration » pour démarrer avec les 18 produits actuels — modifiables ensuite librement.
 
