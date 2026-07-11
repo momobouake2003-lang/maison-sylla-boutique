@@ -1,10 +1,10 @@
 {
-  "id": "./",
+  "id": "app/",
   "name": "Maison Sylla",
   "short_name": "Maison Sylla",
   "description": "Électroménager, vaisselle et gourdes — Maison Sylla, Bouaké.",
-  "start_url": "./index.html",
-  "scope": "./",
+  "start_url": "app/",
+  "scope": "app/",
   "display": "standalone",
   "orientation": "portrait-primary",
   "background_color": "#F7F3EA",

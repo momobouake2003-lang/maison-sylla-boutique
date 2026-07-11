@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vaisselle — Maison Sylla</title>
+<meta name="description" content="Vaisselle Maison Sylla : services de table, verres, théières et plats pour recevoir avec élégance.">
+<link rel="stylesheet" href="../css/style.css">
+<link rel="manifest" href="../manifest-client.json">
+<meta name="theme-color" content="#1B2A4A">
+<link rel="apple-touch-icon" href="../icons/client-icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Maison Sylla">
+</head>
+<body>
+
+<header class="site-header" id="site-header"></header>
+
+<main>
+  <section class="page-hero">
+    <div class="wrap">
+      <p class="breadcrumb"><a href="index.html">Accueil</a> / Vaisselle</p>
+      <p class="eyebrow">Univers</p>
+      <h1>Vaisselle</h1>
+      <p>Services de table, verres, théières et plats choisis pour leur élégance sobre et leur résistance à l'usage quotidien.</p>
+    </div>
+  </section>
+
+  <div class="wrap listing">
+    <aside class="filters">
+      <h4>Disponibilité</h4>
+      <div class="filter-group">
+        <label><input type="checkbox" id="f-instock"> En stock uniquement</label>
+      </div>
+      <h4>Prix (FCFA)</h4>
+      <div class="filter-group">
+        <div class="price-inputs">
+          <input type="number" id="f-min" placeholder="Min">
+          <span>–</span>
+          <input type="number" id="f-max" placeholder="Max">
+        </div>
+      </div>
+      <h4>Trier par</h4>
+      <div class="filter-group">
+        <select id="f-sort" style="width:100%; padding:8px; border:1px solid var(--line); border-radius:3px;">
+          <option value="default">Pertinence</option>
+          <option value="price-asc">Prix croissant</option>
+          <option value="price-desc">Prix décroissant</option>
+        </select>
+      </div>
+      <button class="filter-reset" id="f-reset">Réinitialiser les filtres</button>
+    </aside>
+
+    <div>
+      <p class="result-count" id="resultCount"></p>
+      <div class="product-grid" id="productGrid"></div>
+    </div>
+  </div>
+</main>
+
+<footer class="site-footer" id="site-footer"></footer>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="../js/firebase-config.js"></script>
+<script src="../js/products.js"></script>
+<script src="../js/cart.js"></script>
+<script src="../js/pwa-register.js"></script>
+<script>
+  mountHeaderFooter('vaisselle');
+  const CATEGORY_SLUG = 'vaisselle';
+
+  function productCardHTML(p){
+    return `
+    <article class="product-card">
+      <a href="produit.html?id=${p.id}" class="product-media">
+        ${p.stock ? `<span class="stock-tag">En stock</span>` : `<span class="stock-tag out">Rupture</span>`}
+        ${p.icon}
+      </a>
+      <div class="product-body">
+        <span class="product-cat">${CATEGORIES[p.cat].label}</span>
+        <a href="produit.html?id=${p.id}" class="product-name">${p.name}</a>
+        <span class="product-price">${formatFCFA(p.price)}</span>
+        <div class="product-actions">
+          <button class="btn btn-ink btn-sm btn-block" data-add="${p.id}" ${p.stock ? '' : 'disabled'}>${p.stock ? 'Ajouter au panier' : 'Indisponible'}</button>
+        </div>
+      </div>
+    </article>`;
+  }
+
+  function renderList(){
+    const inStockOnly = document.getElementById('f-instock').checked;
+    const min = parseFloat(document.getElementById('f-min').value) || 0;
+    const max = parseFloat(document.getElementById('f-max').value) || Infinity;
+    const sort = document.getElementById('f-sort').value;
+
+    let items = PRODUCTS.filter(p => p.cat === CATEGORY_SLUG);
+    if(inStockOnly) items = items.filter(p => p.stock);
+    items = items.filter(p => p.price >= min && p.price <= max);
+    if(sort === 'price-asc') items = items.slice().sort((a,b) => a.price - b.price);
+    if(sort === 'price-desc') items = items.slice().sort((a,b) => b.price - a.price);
+
+    document.getElementById('resultCount').textContent = `${items.length} produit${items.length>1?'s':''}`;
+    document.getElementById('productGrid').innerHTML = items.map(productCardHTML).join('') ||
+      `<p class="empty-note">Aucun produit ne correspond à ces filtres.</p>`;
+
+    document.querySelectorAll('[data-add]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        addToCart(btn.getAttribute('data-add'), 1);
+        showToast('Ajouté au panier');
+      });
+    });
+  }
+
+  ['f-instock','f-min','f-max','f-sort'].forEach(id => {
+    document.getElementById(id).addEventListener('input', renderList);
+  });
+  document.getElementById('f-reset').addEventListener('click', () => {
+    document.getElementById('f-instock').checked = false;
+    document.getElementById('f-min').value = '';
+    document.getElementById('f-max').value = '';
+    document.getElementById('f-sort').value = 'default';
+    renderList();
+  });
+
+  (async function(){
+    document.getElementById('productGrid').innerHTML = '<p class="empty-note">Chargement du catalogue…</p>';
+    await loadProducts();
+    renderList();
+  })();
+</script>
+</body>
+</html>

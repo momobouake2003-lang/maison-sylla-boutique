@@ -42,17 +42,23 @@ Chaque page `.html` a reçu dans son `<head>` un lien vers le bon manifest
 (`manifest-client.json` pour les pages boutique, `manifest-admin.json` pour
 `admin.html`), et juste avant `</body>` un appel à `js/pwa-register.js`.
 
-## L'appli admin a déménagé vers `/admin/`
+## Deux dossiers, deux applis, aucun chevauchement
 
-Pour que Chrome/Android traite l'appli client et l'appli admin comme deux
-applis vraiment séparées et n'installe pas l'une par-dessus l'autre, l'admin
-vit maintenant dans son propre dossier : `admin/index.html` (au lieu de
-`admin.html` à la racine). L'ancien fichier `admin.html` a été gardé comme
-simple redirection automatique vers `/admin/`, pour que tes anciens favoris
+Pour que Chrome/Android traite vraiment les deux applis comme séparées (et
+ne dise jamais "déjà installée" en confondant l'une avec l'autre), **les
+deux vivent maintenant dans leur propre dossier, au même niveau** :
+
+- **Appli cliente** → `app/index.html` → `https://tonsite.com/app/`
+- **Appli admin** → `admin/index.html` → `https://tonsite.com/admin/`
+
+Les anciens fichiers à la racine (`index.html`, `electronique.html`,
+`admin.html`, etc.) sont désormais de simples pages de redirection
+automatique vers ces nouveaux dossiers, pour que tes anciens liens/favoris
 continuent de fonctionner.
 
-**Nouvelle URL à utiliser pour te connecter et pour installer l'appli
-famille : `https://tonsite.com/admin/`** (avec le slash à la fin).
+**Nouvelles URLs à utiliser pour installer :**
+- Appli cliente : `https://tonsite.com/app/`
+- Appli admin : `https://tonsite.com/admin/`
 
 ## Important : HTTPS obligatoire
 
