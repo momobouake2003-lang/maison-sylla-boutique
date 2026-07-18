@@ -8,6 +8,7 @@
 <link rel="stylesheet" href="../css/style.css">
 <link rel="manifest" href="../manifest-admin.json">
 <meta name="theme-color" content="#2F5233">
+<link rel="icon" href="../favicon.ico">
 <link rel="apple-touch-icon" href="../icons/admin-icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="MS Admin">
@@ -126,13 +127,37 @@
             <label>Catégorie
               <select name="cat" id="catSelect" required>
                 <option value="electronique">Électronique</option>
-                <option value="vaisselle">Vaisselle</option>
-                <option value="gourdes">Gourdes &amp; Drinkware</option>
+                <option value="menager">Articles ménagers</option>
+                <option value="habillement">Habillement</option>
               </select>
             </label>
             <label>Prix (FCFA)
               <input type="number" name="price" min="0" step="500" required placeholder="Ex : 12000">
             </label>
+          </div>
+          <div class="admin-row2" id="genreRow" style="display:none;">
+            <label>Genre
+              <select name="genre" id="genreSelect">
+                <option value="unisexe">Unisexe</option>
+                <option value="homme">Homme</option>
+                <option value="femme">Femme</option>
+              </select>
+            </label>
+            <label>Tissu
+              <select name="tissu" id="tissuSelect"></select>
+            </label>
+          </div>
+          <div class="admin-row2" id="matiereRow" style="display:none;">
+            <label>Matériau
+              <select name="matiere" id="matiereSelect"></select>
+            </label>
+            <div></div>
+          </div>
+          <div class="admin-row2" id="typeRow" style="display:none;">
+            <label>Type de produit
+              <select name="souscat" id="typeSelect"></select>
+            </label>
+            <div></div>
           </div>
           <div class="admin-row3" style="align-items:end;">
             <label>Icône
@@ -247,6 +272,14 @@
   const imageUrlInput = document.getElementById('imageUrlInput');
   const imageFileInput = document.getElementById('imageFileInput');
   const imageFileNote = document.getElementById('imageFileNote');
+  const genreSelect = document.getElementById('genreSelect');
+  const tissuSelect = document.getElementById('tissuSelect');
+  const matiereSelect = document.getElementById('matiereSelect');
+  const typeSelect = document.getElementById('typeSelect');
+
+  Object.entries(TISSUS).forEach(([k,l]) => tissuSelect.appendChild(new Option(l, k)));
+  Object.entries(MATERIAUX).forEach(([k,l]) => matiereSelect.appendChild(new Option(l, k)));
+  Object.entries(TYPES_ELEC).forEach(([k,l]) => typeSelect.appendChild(new Option(l, k)));
 
   /* Compresse une image choisie sur l'appareil et la transforme en base64,
      afin qu'elle puisse être stockée directement dans le document Firestore
@@ -305,6 +338,9 @@
     const cat = catSelect.value;
     const choices = ICON_CHOICES[cat] || Object.keys(ICONS);
     iconSelect.innerHTML = choices.map(k => `<option value="${k}">${k}</option>`).join('');
+    document.getElementById('genreRow').style.display = (cat === 'habillement') ? 'grid' : 'none';
+    document.getElementById('matiereRow').style.display = (cat === 'menager') ? 'grid' : 'none';
+    document.getElementById('typeRow').style.display = (cat === 'electronique') ? 'grid' : 'none';
     updateIconPreview();
   }
   function updateIconPreview(){
@@ -350,6 +386,10 @@
     imageFileInput.value = '';
     imageFileNote.textContent = '';
     refreshIconOptions();
+    if(p.genre) genreSelect.value = p.genre;
+    if(p.tissu) tissuSelect.value = p.tissu;
+    if(p.matiere) matiereSelect.value = p.matiere;
+    if(p.souscat) typeSelect.value = p.souscat;
     if(p.iconKey) iconSelect.value = p.iconKey;
     updateIconPreview();
     formTitle.textContent = `Modifier « ${p.name} »`;
@@ -365,14 +405,19 @@
 
     const data = new FormData(productForm);
     const docId = data.get('docId');
+    const cat = data.get('cat');
     const payload = {
       name: data.get('name').trim(),
-      cat: data.get('cat'),
+      cat: cat,
       price: Number(data.get('price')) || 0,
       stock: productForm.stock.checked,
       desc: data.get('desc').trim(),
       iconKey: data.get('imageUrl').trim() ? '' : data.get('iconKey'),
       imageUrl: data.get('imageUrl').trim(),
+      genre: cat === 'habillement' ? (data.get('genre') || 'unisexe') : '',
+      tissu: cat === 'habillement' ? (data.get('tissu') || '') : '',
+      matiere: cat === 'menager' ? (data.get('matiere') || '') : '',
+      souscat: cat === 'electronique' ? (data.get('souscat') || '') : '',
     };
 
     try{
@@ -422,7 +467,7 @@
       <div class="prow">
         <div class="thumb">${resolveIcon(p)}</div>
         <div>
-          <div class="pcat">${CATEGORIES[p.cat] ? CATEGORIES[p.cat].label : p.cat}</div>
+          <div class="pcat">${CATEGORIES[p.cat] ? CATEGORIES[p.cat].label : p.cat}${p.genre && p.genre !== 'unisexe' ? ' · ' + (p.genre === 'homme' ? 'Homme' : 'Femme') : ''}${p.tissu && TISSUS[p.tissu] ? ' · ' + TISSUS[p.tissu] : ''}${p.matiere && MATERIAUX[p.matiere] ? ' · ' + MATERIAUX[p.matiere] : ''}${p.souscat && TYPES_ELEC[p.souscat] ? ' · ' + TYPES_ELEC[p.souscat] : ''}</div>
           <div class="pname">${escapeHTML(p.name)}</div>
         </div>
         <div class="pstock ${p.stock ? 'in' : 'out'}">${p.stock ? '● En stock' : '● Rupture'}</div>

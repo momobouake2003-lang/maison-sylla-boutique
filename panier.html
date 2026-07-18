@@ -2,11 +2,183 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="refresh" content="0; url=app/panier.html">
-<link rel="canonical" href="app/panier.html">
-<title>Redirection — Maison Sylla</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mon panier — Maison Sylla</title>
+<link rel="stylesheet" href="css/style.css">
+<link rel="manifest" href="manifest-client.json">
+<meta name="theme-color" content="#1B2A4A">
+<link rel="icon" href="favicon.ico">
+<link rel="apple-touch-icon" href="icons/client-icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Maison Sylla">
 </head>
 <body>
-<p>Redirection vers <a href="app/panier.html">la boutique</a>…</p>
+
+<header class="site-header" id="site-header"></header>
+
+<main>
+  <div class="wrap" style="padding-top:32px;">
+    <p class="eyebrow">Étape 1 sur 1</p>
+    <h1>Mon panier</h1>
+  </div>
+
+  <section class="cart-page">
+    <div class="wrap cart-layout">
+      <div>
+        <div class="cart-list" id="cartList"></div>
+      </div>
+
+      <aside class="summary">
+        <h3>Récapitulatif</h3>
+        <div class="summary-row"><span>Sous-total</span><span class="val" id="sumSubtotal">0 FCFA</span></div>
+        <div class="summary-row"><span>Livraison</span><span class="val">À confirmer</span></div>
+        <div class="summary-row total"><span>Total</span><span class="val" id="sumTotal">0 FCFA</span></div>
+
+        <h3 style="margin-top:24px;">Mode de paiement</h3>
+        <div class="pay-options">
+          <label class="pay-option"><input type="radio" name="pay" value="orange" checked><span><span class="lbl">Orange Money</span><span class="sub">Paiement mobile</span></span></label>
+          <label class="pay-option"><input type="radio" name="pay" value="mtn"><span><span class="lbl">MTN Money</span><span class="sub">Paiement mobile</span></span></label>
+          <label class="pay-option"><input type="radio" name="pay" value="wave"><span><span class="lbl">Wave</span><span class="sub">Paiement mobile</span></span></label>
+          <label class="pay-option"><input type="radio" name="pay" value="carte"><span><span class="lbl">Carte bancaire</span><span class="sub">Visa / Mastercard via CinetPay</span></span></label>
+          <label class="pay-option"><input type="radio" name="pay" value="livraison"><span><span class="lbl">Paiement à la livraison</span><span class="sub">Espèces à réception</span></span></label>
+        </div>
+
+        <form class="checkout-form" id="checkoutForm">
+          <label>Nom complet
+            <input type="text" name="nom" required placeholder="Ex : Awa Sylla">
+          </label>
+          <label>Téléphone
+            <input type="tel" name="tel" required placeholder="Ex : 07 00 00 00 00">
+          </label>
+          <div class="form-row2">
+            <label>Ville
+              <input type="text" name="ville" required placeholder="Bouaké" value="Bouaké">
+            </label>
+            <label>Quartier
+              <input type="text" name="quartier" placeholder="Ex : Koko">
+            </label>
+          </div>
+          <label>Adresse de livraison
+            <textarea name="adresse" rows="2" placeholder="Précisez la rue, un repère..."></textarea>
+          </label>
+          <button type="submit" class="btn btn-whatsapp btn-block" id="submitBtn">Valider et commander via WhatsApp</button>
+          <p class="empty-note text-center" style="margin:0;">Vous serez redirigé(e) vers WhatsApp pour confirmer votre commande.</p>
+        </form>
+      </aside>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer" id="site-footer"></footer>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="js/firebase-config.js"></script>
+<script src="js/products.js"></script>
+<script src="js/cart.js"></script>
+<script src="js/pwa-register.js"></script>
+<script>
+  mountHeaderFooter(null);
+
+  function renderCart(){
+    const lines = cartLinesWithProducts();
+    const listEl = document.getElementById('cartList');
+
+    if(lines.length === 0){
+      listEl.innerHTML = `
+        <div class="cart-empty">
+          ${UI_ICONS.empty}
+          <h3>Votre panier est vide</h3>
+          <p class="empty-note">Parcourez nos catégories pour trouver votre bonheur.</p>
+          <a href="index.html" class="btn btn-ink" style="margin-top:14px;">Voir la boutique</a>
+        </div>`;
+    } else {
+      listEl.innerHTML = lines.map(l => `
+        <div class="cart-row" data-id="${l.id}">
+          <div class="thumb">${l.product.icon}</div>
+          <div>
+            <div class="cat">${CATEGORIES[l.product.cat].label}</div>
+            <a href="produit.html?id=${l.id}" class="name">${l.product.name}</a>
+          </div>
+          <div class="qty">
+            <div class="qty-control">
+              <button type="button" class="q-minus">−</button>
+              <input type="number" class="q-input" value="${l.qty}" min="1">
+              <button type="button" class="q-plus">+</button>
+            </div>
+          </div>
+          <div class="price">${formatFCFA(l.product.price * l.qty)}</div>
+          <button class="remove" data-remove="${l.id}">Retirer</button>
+        </div>`).join('');
+    }
+
+    document.getElementById('sumSubtotal').textContent = formatFCFA(cartTotal());
+    document.getElementById('sumTotal').textContent = formatFCFA(cartTotal());
+    document.getElementById('submitBtn').disabled = lines.length === 0;
+
+    // bind row events
+    listEl.querySelectorAll('.cart-row').forEach(row => {
+      const id = row.getAttribute('data-id');
+      row.querySelector('.q-minus').addEventListener('click', () => {
+        const input = row.querySelector('.q-input');
+        setQty(id, Math.max(1, parseInt(input.value) - 1));
+        renderCart();
+      });
+      row.querySelector('.q-plus').addEventListener('click', () => {
+        const input = row.querySelector('.q-input');
+        setQty(id, parseInt(input.value) + 1);
+        renderCart();
+      });
+      row.querySelector('.q-input').addEventListener('change', (e) => {
+        setQty(id, Math.max(1, parseInt(e.target.value) || 1));
+        renderCart();
+      });
+    });
+    listEl.querySelectorAll('[data-remove]').forEach(btn => {
+      btn.addEventListener('click', () => { removeFromCart(btn.getAttribute('data-remove')); renderCart(); });
+    });
+  }
+
+  document.getElementById('checkoutForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const data = new FormData(e.target);
+    const payLabelMap = { orange:'Orange Money', mtn:'MTN Money', wave:'Wave', carte:'Carte bancaire', livraison:'Paiement à la livraison' };
+    const payMethod = payLabelMap[data.get('pay')] || 'À définir';
+
+    let msg = whatsappCartMessage();
+    msg += `\n\nLivraison à :\n${data.get('nom')} — ${data.get('tel')}\n${data.get('quartier') ? data.get('quartier') + ', ' : ''}${data.get('ville')}\n${data.get('adresse') || ''}`;
+    msg += `\n\nMode de paiement souhaité : ${payMethod}`;
+
+    // Enregistrement de la commande dans Firestore pour l'historique côté admin
+    // (n'empêche jamais l'ouverture de WhatsApp, même en cas d'échec ou si Firebase n'est pas configuré)
+    if(typeof db !== 'undefined' && db){
+      try{
+        const lines = cartLinesWithProducts();
+        await db.collection('orders').add({
+          customerName: data.get('nom') || '',
+          customerPhone: data.get('tel') || '',
+          ville: data.get('ville') || '',
+          quartier: data.get('quartier') || '',
+          adresse: data.get('adresse') || '',
+          paymentMethod: payMethod,
+          items: lines.map(l => ({ id: l.id, name: l.product.name, qty: l.qty, price: l.product.price })),
+          total: cartTotal(),
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        });
+      }catch(err){
+        console.warn('Maison Sylla : commande non enregistrée dans Firestore.', err);
+      }
+    }
+
+    window.open(whatsappLink(msg), '_blank');
+  });
+
+  (async function(){
+    document.getElementById('cartList').innerHTML = '<p class="empty-note">Chargement du panier…</p>';
+    await loadProducts();
+    renderCart();
+  })();
+</script>
 </body>
 </html>

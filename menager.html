@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Électronique — Maison Sylla</title>
-<meta name="description" content="Électronique Maison Sylla : téléphones, ordinateurs, petit électroménager, audio et accessoires.">
+<title>Articles ménagers — Maison Sylla</title>
+<meta name="description" content="Articles ménagers Maison Sylla : vaisselle, gourdes, entretien et rangement, classés par matériau.">
 <link rel="stylesheet" href="css/style.css">
 <link rel="manifest" href="manifest-client.json">
 <meta name="theme-color" content="#1B2A4A">
@@ -18,21 +18,21 @@
 <header class="site-header" id="site-header"></header>
 
 <main>
-  <section class="page-hero cat-accent-electronique">
+  <section class="page-hero cat-accent-menager">
     <div class="wrap">
-      <p class="breadcrumb"><a href="index.html">Accueil</a> / Électronique</p>
+      <p class="breadcrumb"><a href="index.html">Accueil</a> / Articles ménagers</p>
       <p class="eyebrow">Univers</p>
-      <h1>Électronique</h1>
-      <p>Téléphones, ordinateurs et petit électroménager fiable pour la maison — sélectionné pour sa solidité au quotidien.</p>
+      <h1>Articles ménagers</h1>
+      <p>Vaisselle, gourdes, entretien et rangement — tout pour la maison, classé par matériau pour trouver facilement ce qu'il vous faut.</p>
     </div>
   </section>
 
   <div class="wrap listing">
     <aside class="filters">
-      <h4>Type de produit</h4>
+      <h4>Matériau</h4>
       <div class="filter-group">
-        <select id="f-type" class="select-field">
-          <option value="all">Tous les types</option>
+        <select id="f-matiere" class="select-field">
+          <option value="all">Tous les matériaux</option>
         </select>
       </div>
       <h4>Disponibilité</h4>
@@ -75,19 +75,19 @@
 <script src="js/cart.js"></script>
 <script src="js/pwa-register.js"></script>
 <script>
-  mountHeaderFooter('electronique');
-  const CATEGORY_SLUG = 'electronique';
+  mountHeaderFooter('menager');
+  const CATEGORY_SLUG = 'menager';
 
-  const typeSelect = document.getElementById('f-type');
-  Object.entries(TYPES_ELEC).forEach(([key, label]) => {
+  const matiereSelect = document.getElementById('f-matiere');
+  Object.entries(MATERIAUX).forEach(([key, label]) => {
     const opt = document.createElement('option');
     opt.value = key;
     opt.textContent = label;
-    typeSelect.appendChild(opt);
+    matiereSelect.appendChild(opt);
   });
 
   function productCardHTML(p){
-    const typeTag = p.souscat && TYPES_ELEC[p.souscat] ? `<span class="product-genre">${TYPES_ELEC[p.souscat]}</span>` : '';
+    const matiereTag = p.matiere && MATERIAUX[p.matiere] ? `<span class="product-genre">${MATERIAUX[p.matiere]}</span>` : '';
     return `
     <article class="product-card">
       <a href="produit.html?id=${p.id}" class="product-media">
@@ -95,7 +95,7 @@
         ${p.icon}
       </a>
       <div class="product-body">
-        <span class="product-cat">${CATEGORIES[p.cat].label} ${typeTag}</span>
+        <span class="product-cat">${CATEGORIES[p.cat].label} ${matiereTag}</span>
         <a href="produit.html?id=${p.id}" class="product-name">${p.name}</a>
         <span class="product-price">${formatFCFA(p.price)}</span>
         <div class="product-actions">
@@ -106,14 +106,14 @@
   }
 
   function renderList(){
-    const type = typeSelect.value;
+    const matiere = matiereSelect.value;
     const inStockOnly = document.getElementById('f-instock').checked;
     const min = parseFloat(document.getElementById('f-min').value) || 0;
     const max = parseFloat(document.getElementById('f-max').value) || Infinity;
     const sort = document.getElementById('f-sort').value;
 
     let items = PRODUCTS.filter(p => p.cat === CATEGORY_SLUG);
-    if(type !== 'all') items = items.filter(p => p.souscat === type);
+    if(matiere !== 'all') items = items.filter(p => p.matiere === matiere);
     if(inStockOnly) items = items.filter(p => p.stock);
     items = items.filter(p => p.price >= min && p.price <= max);
     if(sort === 'price-asc') items = items.slice().sort((a,b) => a.price - b.price);
@@ -131,11 +131,11 @@
     });
   }
 
-  ['f-type','f-instock','f-min','f-max','f-sort'].forEach(id => {
+  ['f-matiere','f-instock','f-min','f-max','f-sort'].forEach(id => {
     document.getElementById(id).addEventListener('input', renderList);
   });
   document.getElementById('f-reset').addEventListener('click', () => {
-    typeSelect.value = 'all';
+    matiereSelect.value = 'all';
     document.getElementById('f-instock').checked = false;
     document.getElementById('f-min').value = '';
     document.getElementById('f-max').value = '';
@@ -148,8 +148,8 @@
     await loadProducts();
 
     const params = new URLSearchParams(location.search);
-    const t = params.get('type');
-    if(t && TYPES_ELEC[t]) typeSelect.value = t;
+    const m = params.get('matiere');
+    if(m && MATERIAUX[m]) matiereSelect.value = m;
 
     renderList();
   })();

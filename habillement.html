@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Électronique — Maison Sylla</title>
-<meta name="description" content="Électronique Maison Sylla : téléphones, ordinateurs, petit électroménager, audio et accessoires.">
+<title>Habillement — Maison Sylla</title>
+<meta name="description" content="Habillement Maison Sylla : vêtements et accessoires pour homme et femme, sélectionnés avec soin.">
 <link rel="stylesheet" href="css/style.css">
 <link rel="manifest" href="manifest-client.json">
 <meta name="theme-color" content="#1B2A4A">
@@ -18,21 +18,29 @@
 <header class="site-header" id="site-header"></header>
 
 <main>
-  <section class="page-hero cat-accent-electronique">
+  <section class="page-hero cat-accent-habillement">
     <div class="wrap">
-      <p class="breadcrumb"><a href="index.html">Accueil</a> / Électronique</p>
+      <p class="breadcrumb"><a href="index.html">Accueil</a> / Habillement</p>
       <p class="eyebrow">Univers</p>
-      <h1>Électronique</h1>
-      <p>Téléphones, ordinateurs et petit électroménager fiable pour la maison — sélectionné pour sa solidité au quotidien.</p>
+      <h1>Habillement</h1>
+      <p>Vêtements et accessoires pour homme et femme, sélectionnés avec le même souci du détail que le reste de la maison.</p>
     </div>
   </section>
 
+  <div class="wrap">
+    <div class="genre-tabs" id="genreTabs">
+      <button type="button" class="genre-tab active" data-genre="all">Tout voir</button>
+      <button type="button" class="genre-tab" data-genre="homme">Homme</button>
+      <button type="button" class="genre-tab" data-genre="femme">Femme</button>
+    </div>
+  </div>
+
   <div class="wrap listing">
     <aside class="filters">
-      <h4>Type de produit</h4>
+      <h4>Tissu</h4>
       <div class="filter-group">
-        <select id="f-type" class="select-field">
-          <option value="all">Tous les types</option>
+        <select id="f-tissu" class="select-field">
+          <option value="all">Tous les tissus</option>
         </select>
       </div>
       <h4>Disponibilité</h4>
@@ -75,19 +83,21 @@
 <script src="js/cart.js"></script>
 <script src="js/pwa-register.js"></script>
 <script>
-  mountHeaderFooter('electronique');
-  const CATEGORY_SLUG = 'electronique';
+  mountHeaderFooter('habillement');
+  const CATEGORY_SLUG = 'habillement';
+  let currentGenre = 'all';
 
-  const typeSelect = document.getElementById('f-type');
-  Object.entries(TYPES_ELEC).forEach(([key, label]) => {
+  const tissuSelect = document.getElementById('f-tissu');
+  Object.entries(TISSUS).forEach(([key, label]) => {
     const opt = document.createElement('option');
     opt.value = key;
     opt.textContent = label;
-    typeSelect.appendChild(opt);
+    tissuSelect.appendChild(opt);
   });
 
   function productCardHTML(p){
-    const typeTag = p.souscat && TYPES_ELEC[p.souscat] ? `<span class="product-genre">${TYPES_ELEC[p.souscat]}</span>` : '';
+    const genreTag = p.genre ? `<span class="product-genre">${p.genre === 'homme' ? 'Homme' : p.genre === 'femme' ? 'Femme' : 'Unisexe'}</span>` : '';
+    const tissuTag = p.tissu && TISSUS[p.tissu] ? `<span class="product-genre product-genre-alt">${TISSUS[p.tissu]}</span>` : '';
     return `
     <article class="product-card">
       <a href="produit.html?id=${p.id}" class="product-media">
@@ -95,7 +105,7 @@
         ${p.icon}
       </a>
       <div class="product-body">
-        <span class="product-cat">${CATEGORIES[p.cat].label} ${typeTag}</span>
+        <span class="product-cat">${CATEGORIES[p.cat].label} ${genreTag} ${tissuTag}</span>
         <a href="produit.html?id=${p.id}" class="product-name">${p.name}</a>
         <span class="product-price">${formatFCFA(p.price)}</span>
         <div class="product-actions">
@@ -106,14 +116,15 @@
   }
 
   function renderList(){
-    const type = typeSelect.value;
+    const tissu = tissuSelect.value;
     const inStockOnly = document.getElementById('f-instock').checked;
     const min = parseFloat(document.getElementById('f-min').value) || 0;
     const max = parseFloat(document.getElementById('f-max').value) || Infinity;
     const sort = document.getElementById('f-sort').value;
 
     let items = PRODUCTS.filter(p => p.cat === CATEGORY_SLUG);
-    if(type !== 'all') items = items.filter(p => p.souscat === type);
+    if(currentGenre !== 'all') items = items.filter(p => p.genre === currentGenre);
+    if(tissu !== 'all') items = items.filter(p => p.tissu === tissu);
     if(inStockOnly) items = items.filter(p => p.stock);
     items = items.filter(p => p.price >= min && p.price <= max);
     if(sort === 'price-asc') items = items.slice().sort((a,b) => a.price - b.price);
@@ -131,15 +142,27 @@
     });
   }
 
-  ['f-type','f-instock','f-min','f-max','f-sort'].forEach(id => {
+  document.querySelectorAll('.genre-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.genre-tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      currentGenre = tab.getAttribute('data-genre');
+      renderList();
+    });
+  });
+
+  ['f-instock','f-min','f-max','f-sort','f-tissu'].forEach(id => {
     document.getElementById(id).addEventListener('input', renderList);
   });
   document.getElementById('f-reset').addEventListener('click', () => {
-    typeSelect.value = 'all';
     document.getElementById('f-instock').checked = false;
     document.getElementById('f-min').value = '';
     document.getElementById('f-max').value = '';
     document.getElementById('f-sort').value = 'default';
+    tissuSelect.value = 'all';
+    document.querySelectorAll('.genre-tab').forEach(t => t.classList.remove('active'));
+    document.querySelector('.genre-tab[data-genre="all"]').classList.add('active');
+    currentGenre = 'all';
     renderList();
   });
 
@@ -147,9 +170,14 @@
     document.getElementById('productGrid').innerHTML = '<p class="empty-note">Chargement du catalogue…</p>';
     await loadProducts();
 
+    // Si l'URL contient ?genre=homme ou ?genre=femme (ex. lien direct depuis l'accueil), on présélectionne l'onglet
     const params = new URLSearchParams(location.search);
-    const t = params.get('type');
-    if(t && TYPES_ELEC[t]) typeSelect.value = t;
+    const g = params.get('genre');
+    if(g === 'homme' || g === 'femme'){
+      document.querySelectorAll('.genre-tab').forEach(t => t.classList.remove('active'));
+      document.querySelector(`.genre-tab[data-genre="${g}"]`).classList.add('active');
+      currentGenre = g;
+    }
 
     renderList();
   })();

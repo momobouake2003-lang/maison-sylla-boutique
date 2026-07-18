@@ -93,28 +93,34 @@ const UI_ICONS = {
   phone: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3-8.7A2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .3 2 .6 3a2 2 0 0 1-.5 2L8 10a16 16 0 0 0 6 6l1.3-1.2a2 2 0 0 1 2-.5c1 .3 2 .5 3 .6a2 2 0 0 1 1.7 2z"/></svg>`,
 };
 
-/* ---------- Marque (logo) ---------- */
-const BRAND_MARK = `<svg viewBox="0 0 48 48" fill="none"><rect x="2" y="2" width="44" height="44" rx="4" fill="#1B2A4A"/><path d="M10 34V14l14 14 14-14v20" stroke="#E0B658" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 40h36" stroke="#C89B3C" stroke-width="2.6" stroke-linecap="round"/></svg>`;
+/* ---------- Marque (logo officiel) ---------- */
+const BRAND_MARK = `<img src="${location.pathname.includes('/admin/') ? '../' : ''}icons/client-icon-192.png" alt="Maison Sylla" class="brand-logo-img">`;
+
+/* Chemin de base : les pages boutique sont à la racine, mais admin/index.html
+   est un niveau plus profond (dossier admin/ séparé, pour que l'appli
+   installée "Espace famille" ait sa propre zone distincte de l'appli
+   boutique). Tous les liens internes du header/footer s'adaptent donc. */
+const BASE = location.pathname.includes('/admin/') ? '../' : '';
 
 /* ---------- Header / Footer injection ---------- */
 function siteHeader(active){
-  const link = (href, label, key) => `<a href="${href}" class="${active===key?'active':''}">${label}</a>`;
+  const link = (href, label, key) => `<a href="${BASE}${href}" class="${active===key?'active':''}">${label}</a>`;
   return `
   <div class="announce">Livraison à Bouaké &amp; environs · <b>Paiement Mobile Money accepté</b> · Commande rapide via WhatsApp</div>
   <div class="wrap nav-row">
-    <a href="index.html" class="brand">
+    <a href="${BASE}index.html" class="brand">
       <span class="brand-mark">${BRAND_MARK}</span>
       <span class="brand-text"><span class="name">Maison Sylla</span><span class="tag">Excellence Garantie</span></span>
     </a>
     <nav class="main-nav" id="mainNav">
       ${link('index.html', 'Accueil', 'accueil')}
       ${link('electronique.html', 'Électronique', 'electronique')}
-      ${link('vaisselle.html', 'Vaisselle', 'vaisselle')}
-      ${link('gourdes.html', 'Gourdes', 'gourdes')}
+      ${link('menager.html', 'Ménager', 'menager')}
+      ${link('habillement.html', 'Habillement', 'habillement')}
       ${link('contact.html', 'Contact', 'contact')}
     </nav>
     <div class="nav-actions">
-      <a href="panier.html" class="cart-btn">
+      <a href="${BASE}panier.html" class="cart-btn">
         ${UI_ICONS.cart}<span>Panier</span>
         <span class="cart-count" data-cart-count>0</span>
       </a>
@@ -136,17 +142,17 @@ function siteFooter(){
       </div>
       <div class="footer-col">
         <h5>Boutique</h5>
-        <a href="electronique.html">Électronique</a>
-        <a href="vaisselle.html">Vaisselle</a>
-        <a href="gourdes.html">Gourdes &amp; drinkware</a>
-        <a href="panier.html">Mon panier</a>
+        <a href="${BASE}electronique.html">Électronique</a>
+        <a href="${BASE}menager.html">Articles ménagers</a>
+        <a href="${BASE}habillement.html">Habillement</a>
+        <a href="${BASE}panier.html">Mon panier</a>
       </div>
       <div class="footer-col">
         <h5>Maison Sylla</h5>
-        <a href="index.html#apropos">Notre histoire</a>
-        <a href="contact.html">Contact</a>
+        <a href="${BASE}index.html#apropos">Notre histoire</a>
+        <a href="${BASE}contact.html">Contact</a>
         <a href="${whatsappLink('Bonjour Maison Sylla, j\'ai une question.')}" target="_blank" rel="noopener">WhatsApp</a>
-        <a href="admin.html">Espace famille</a>
+        <a href="${BASE}admin/index.html">Espace famille</a>
       </div>
       <div class="footer-col">
         <h5>Paiement</h5>

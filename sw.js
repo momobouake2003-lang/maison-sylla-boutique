@@ -4,7 +4,7 @@
 // statiques (CSS, JS, icônes) sont mis en cache pour un chargement rapide et
 // un minimum de confort hors-ligne (affichage de l'appli même sans réseau).
 
-const CACHE_NAME = 'maison-sylla-v1';
+const CACHE_NAME = 'maison-sylla-v3';
 
 const STATIC_ASSETS = [
   'css/style.css',
